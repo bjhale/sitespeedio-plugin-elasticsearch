@@ -1,0 +1,22 @@
+{
+  "name": "sitespeedio-plugin-elasticsearch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bjhale/sitespeedio-plugin-elasticsearch.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bjhale/sitespeedio-plugin-elasticsearch/issues"
+  },
+  "homepage": "https://github.com/bjhale/sitespeedio-plugin-elasticsearch#readme",
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.6.0"
+  }
+}
