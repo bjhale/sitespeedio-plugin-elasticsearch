@@ -5,6 +5,6 @@ module.exports = {
     password: null,
     setup: false,
     version: '8',
-    index: 'sitespeedio-run'
+    index: 'sitespeedio'
   }
-}
+};

@@ -4,8 +4,7 @@ const path = require('path');
 const defaultOptions = require('./defaultConfig');
 const dataCollector = require('./dataCollector');
 const client = require('@elastic/elasticsearch');
-const transport = require('@elastic/transport/index.js');
-
+const setup = require('./setup');
 
 module.exports = {
   name() {
@@ -22,7 +21,7 @@ module.exports = {
 
     this.log = context.intel.getLogger('sitespeedio.plugin.elasticsearch');
 
-    this.log.info(
+    this.log.debug(
       `Elasticsearch Configuration: ${JSON.stringify(this.options)}`
     );
 
@@ -36,12 +35,12 @@ module.exports = {
       this.log.error('elasticsearch.username must be defined');
     }
 
-    if(this.options.password === null) {
+    if (this.options.password === null) {
       this.error = true;
       this.log.error('elasticsearch.password must be defined');
     }
 
-    if (this.error){
+    if (this.error) {
       process.exit();
     }
 
@@ -56,49 +55,26 @@ module.exports = {
       }
     });
 
-    // this.client.index({
-    //   index: 'game-of-thrones',
-    //   document: {
-    //     character: 'Ned Stark',
-    //     quote: 'Winter is coming.'
-    //   }
-    // });
+    if (this.options.setup) {
+      setup(this.client);
+    }
   },
 
   async processMessage(message, queue) {
+    console.log(message.type);
+
     switch (message.type) {
       case 'browsertime.pageSummary':
         this.dataCollector.processBrowsertimePageSummary(message);
-        // await this.client.index({
-        //   index: this.options.index,
-        //   document: {
-        //     '@timestamp': message.timestamp,
-        //     url: message.data.info.browsertime.url,
-        //     browser: message.data.info.browser.name,
-        //     connectivity: message.data.info.connectivity.profile,
-        //     statistics: {
-        //       googleWebVitals: {
-        //         cumulativeLayoutShift: message.data.statistics.googleWebVitals.cumulativeLayoutShift.mean,
-        //         ttfb: message.data.statistics.googleWebVitals.ttfb.mean,
-        //         largestContentfulPaint: message.data.statistics.googleWebVitals.largestContentfulPaint.mean,
-        //         firstContentfulPaint: message.data.statistics.googleWebVitals.firstContentfulPaint.mean,
-        //         firstInputDelay: message.data.statistics.googleWebVitals.firstInputDelay.mean,
-        //         totalBlockingTime: message.data.statistics.googleWebVitals.totalBlockingTime.mean
-        //       },
-        //       coach: {
-        //         bestpractice: message.data.statistics.coach.coachAdvice.advice.bestpractice.score.mean,
-        //         performance: message.data.statistics.coach.coachAdvice.advice.performance.score.mean,
-        //         privacy: message.data.statistics.coach.coachAdvice.advice.privacy.score.mean,
-        //         total: message.data.statistics.coach.coachAdvice.advice.score.mean
-        //       }
-        //     }
-        //   }
-        // });
         break;
       case 'lighthouse.pageSummary':
         this.dataCollector.processLighthousePageSummary(message);
         break;
+      case 'pagexray.pageSummary':
+        this.dataCollector.processPagexrayPageSummary(message);
+        break;
       case 'sitespeedio.render':
+        // eslint-disable-next-line no-case-declarations
         let urls = this.dataCollector.getUrls();
 
         for (const url of urls) {
@@ -110,6 +86,11 @@ module.exports = {
 
         await this.storageManager.writeData(
           JSON.stringify(this.dataCollector.getData(), null, 2),
+          'elasticsearch.json'
+        );
+
+        await this.storageManager.writeData(
+          JSON.stringify(this.dataCollector.getDebugData(), null, 2),
           'elasticsearch-debug.json'
         );
         break;

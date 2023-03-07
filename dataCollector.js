@@ -1,10 +1,9 @@
 'use strict';
 
-const util = require('util');
-
 module.exports = class DataCollector {
-  constructor(props) {
+  constructor() {
     this.urls = {};
+    this.debug = {};
   }
 
   getUrls() {
@@ -19,9 +18,16 @@ module.exports = class DataCollector {
     return this.urls;
   }
 
+  getDebugData() {
+    return this.debug;
+  }
+
   _addUrl(url) {
     if (!this.urls[url]) {
       this.urls[url] = {};
+    }
+    if (!this.debug[url]) {
+      this.debug[url] = {};
     }
   }
 
@@ -31,18 +37,20 @@ module.exports = class DataCollector {
     let lighthouse = {};
 
     lighthouse.categories = {};
-    Object.entries(message.data.categories).map(([key,value]) => {
+    Object.entries(message.data.categories).map(([key, value]) => {
       lighthouse.categories[key] = value.score;
     });
 
     lighthouse.audits = {};
-    Object.entries(message.data.audits).map(([key,value]) => {
+    Object.entries(message.data.audits).map(([key, value]) => {
       lighthouse.audits[key] = {};
       lighthouse.audits[key].score = value.score;
       if (value.numericValue) {
         lighthouse.audits[key].value = value.numericValue;
       }
     });
+
+    this.debug[message.url]['lighthouse'] = message.data;
 
     this.urls[message.url]['lighthouse'] = lighthouse;
   }
@@ -56,13 +64,38 @@ module.exports = class DataCollector {
 
     this.urls[message.url]['@timestamp'] = message.timestamp;
     this.urls[message.url]['url'] = message.url;
-    this.urls[message.url]['domain'] = message.group;
-    this.urls[message.url]['connectivity'] = message.data.info.connectivity.profile;
+    this.urls[message.url]['connectivity'] =
+      message.data.info.connectivity.profile;
     this.urls[message.url]['browser'] = message.data.info.browser.name;
     this.urls[message.url]['statistics'] = statistics;
 
-    // console.log(util.inspect(data, { depth: null }));
-    // process.exit();
+    this.debug[message.url]['browsertime'] = message.data;
+  }
+
+  processPagexrayPageSummary(message) {
+    const url = new URL(message.data.finalUrl);
+
+    this.urls[message.url]['url'] = message.data.url;
+    this.urls[message.url]['finalUrl'] = message.data.finalUrl;
+    this.urls[message.url]['domain'] = message.data.baseDomain;
+    this.urls[message.url]['path'] = url.pathname;
+    this.urls[message.url]['size'] = {
+      total: {
+        transferSize: message.data.transferSize,
+        contentSize: message.data.contentSize,
+        headerSize: message.data.headerSize,
+        requests: message.data.requests
+      },
+      contentTypes: message.data.contentTypes,
+      firstParty: message.data.firstParty,
+      thirdParty: message.data.thirdParty
+    };
+    this.urls[message.url]['timings'] = {
+      fullyLoaded: message.data.fullyLoaded
+    };
+    this.urls[message.url]['contentTypeSize'] = message.data.contentTypes;
+
+    this.debug[message.url]['pagexray'] = message.data;
   }
 
   _condenseStatisticsRecursive(data) {
