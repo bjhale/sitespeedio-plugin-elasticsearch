@@ -1,4 +1,4 @@
-module.exports = async client => {
+module.exports = async (client,log) => {
   //Check if sitespeedio ilm policy exists
   let ilmPolicy;
   try {
@@ -11,7 +11,7 @@ module.exports = async client => {
 
   //Create ILM Policy
   if (!ilmPolicy) {
-    console.log('Creating ILM Policy');
+    log.info('Creating ILM Policy');
     await client.ilm.putLifecycle({
       name: 'sitespeedio',
       body: {
@@ -59,7 +59,7 @@ module.exports = async client => {
 
   //Create Index Template
   if (!indexTemplate) {
-    console.log('Creating Index Template');
+    log.info('Creating Index Template');
     await client.indices.putIndexTemplate({
       name: 'sitespeedio',
       body: {
@@ -115,7 +115,7 @@ module.exports = async client => {
 
   //Seed Sitespeedio index
   if (!aliasExists) {
-    console.log('Creating Sitespeedio Seed Index');
+    log.info('Creating Sitespeedio Seed Index');
     await client.indices.create({
       index: 'sitespeedio-000001',
       body: {

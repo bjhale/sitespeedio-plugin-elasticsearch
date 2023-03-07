@@ -56,7 +56,7 @@ module.exports = {
     });
 
     if (this.options.setup) {
-      setup(this.client);
+      setup(this.client, this.log);
     }
   },
 
@@ -76,7 +76,7 @@ module.exports = {
       case 'sitespeedio.render':
         // eslint-disable-next-line no-case-declarations
         let urls = this.dataCollector.getUrls();
-
+        console.log('Sending to Elasticseaarch');
         for (const url of urls) {
           await this.client.index({
             index: this.options.index,
