@@ -64,8 +64,6 @@ module.exports = class DataCollector {
 
     this.urls[message.url]['@timestamp'] = message.timestamp;
     this.urls[message.url]['url'] = message.url;
-    this.urls[message.url]['connectivity'] =
-      message.data.info.connectivity.profile;
     this.urls[message.url]['browser'] = message.data.info.browser.name;
     this.urls[message.url]['statistics'] = statistics;
 
@@ -79,6 +77,7 @@ module.exports = class DataCollector {
     this.urls[message.url]['finalUrl'] = message.data.finalUrl;
     this.urls[message.url]['domain'] = message.data.baseDomain;
     this.urls[message.url]['path'] = url.pathname;
+    this.urls[message.url]['connectivity'] = message.data.meta.connectivity;
     this.urls[message.url]['size'] = {
       total: {
         transferSize: message.data.transferSize,
