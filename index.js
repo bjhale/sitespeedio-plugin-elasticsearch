@@ -55,15 +55,15 @@ module.exports = {
       }
     });
 
-    if (this.options.setup) {
-      setup(this.client, this.log);
-    }
   },
 
   async processMessage(message, queue) {
     console.log(message.type);
 
     switch (message.type) {
+      case 'sitespeedio.setup':
+        setup(this.client, this.log);
+        break;
       case 'browsertime.pageSummary':
         this.dataCollector.processBrowsertimePageSummary(message);
         break;

@@ -1,4 +1,7 @@
-module.exports = async (client,log) => {
+const semver = require('semver');
+
+module.exports = async (client, log) => {
+  log.info('Setting up Elasticsearch');
   //Check if sitespeedio ilm policy exists
   let ilmPolicy;
   try {
@@ -50,16 +53,34 @@ module.exports = async (client,log) => {
         }
       }
     });
+  } else {
+    log.info('ILM Policy already exists');
   }
 
-  //Check if sitespeedio index template exists
-  const indexTemplate = await client.indices.existsIndexTemplate({
-    name: 'sitespeedio'
-  });
+  let indexTemplate;
+  try {
+    indexTemplate = await client.indices.getIndexTemplate({
+      name: 'sitespeedio'
+    });
+  } catch (e) {
+    log.error(e);
+    process.exit();
+  }
 
-  //Create Index Template
-  if (!indexTemplate) {
-    log.info('Creating Index Template');
+  let templateVersion;
+  try {
+    templateVersion =
+      indexTemplate.index_templates[0].index_template.template.mappings._meta
+        .version;
+  } catch (e) {
+    templateVersion = false;
+  }
+
+  const updateTemplate =
+    templateVersion === false || semver.lt(templateVersion, '1.1.0');
+
+  if (updateTemplate) {
+    log.info('Updating Index Template');
     await client.indices.putIndexTemplate({
       name: 'sitespeedio',
       body: {
@@ -84,6 +105,9 @@ module.exports = async (client,log) => {
             }
           },
           mappings: {
+            _meta: {
+              version: '1.1.0'
+            },
             _routing: {
               required: false
             },
@@ -98,7 +122,24 @@ module.exports = async (client,log) => {
               includes: [],
               enabled: true
             },
-            dynamic_templates: [],
+            dynamic_templates: [
+              {
+                lighthouse_categories: {
+                  path_match: 'lighthouse.categories.*',
+                  mapping: {
+                    type: 'float'
+                  }
+                }
+              },
+              {
+                lighthouse_scores: {
+                  path_match: 'lighthouse.audits.*.score',
+                  mapping: {
+                    type: 'float'
+                  }
+                }
+              }
+            ],
             date_detection: true
           }
         },
@@ -106,6 +147,8 @@ module.exports = async (client,log) => {
         composed_of: []
       }
     });
+  } else {
+    log.info('Index Template up to date');
   }
 
   //Detect if sitespeedio alias already exists
@@ -128,5 +171,20 @@ module.exports = async (client,log) => {
         }
       }
     });
+  } else {
+    log.info('Sitespeedio Index already exists');
   }
+
+  if (updateTemplate && aliasExists) {
+    log.info('Forcing rollover of sitespeedio alias following index template update');
+    await client.indices.rollover({
+      alias: 'sitespeedio',
+      body: {
+        conditions: {
+          max_age: '1s'
+        }
+      }
+    });
+  }
+
 };
